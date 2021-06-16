@@ -7,7 +7,7 @@ plot_eval_if.sh
 telegram_notification.py
 uai-results.tar.xz
 
-
+*/.DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
