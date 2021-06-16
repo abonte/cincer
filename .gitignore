@@ -2,6 +2,11 @@ results
 *.pickle
 influence
 images
+old_scripts
+plot_eval_if.sh
+telegram_notification.py
+uai-results.tar.xz
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
