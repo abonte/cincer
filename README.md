@@ -6,6 +6,10 @@ Teso, S., Bontempelli, A., Giunchiglia, F., & Passerini, A. (2021). Interactive 
 Cleaning with Example-based Explanations. arXiv preprint
 [arXiv:2106.03922](https://arxiv.org/pdf/2106.03922.pdf).
 
+|the suspicious example is mislabeled|the counter-example is mislabeled|
+|---|---|
+|![](example_ce_user_wrong.png)|![](example_ce_machine_wrong.png)|
+
 ### Abstract
 
 We tackle sequential learning under label noise in applications where a human supervisor
