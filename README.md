@@ -34,7 +34,7 @@ FIM approximation.
 
 ### Dependencies
 
-- Python >= 8.8. Older versions may also work.
+- Python >= 3.8. Older versions may also work.
 - Tensorflow 2.4.1
 
 Create an environment:

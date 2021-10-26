@@ -4,6 +4,7 @@ from copy import copy
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 
 from negsup import load
 from scipy import stats
@@ -154,18 +155,27 @@ def _get_style(trace_args, style_by):
     return label, color, marker, linestyle, zorder
 
 
-def to_be_plot(question, trace_args):
+def to_be_plot(question, trace_args, plot_args):
     if trace_args.negotiator == 'nearest_fisher':
         return False
     method = trace_args.negotiator
     method = 'no_ce' if trace_args.no_ce else method
     method = 'upper_bound' if trace_args.p_noise == 0.0 and trace_args.inspector == 'always' else method
     print(method)
+    # plot upper bound only for supplementary
+    if method == 'upper_bound' and not plot_args.sup:
+        return False
     return method in QUESTIONS[question]
 
 
 def _draw(plot_args, traces, trace_args, metrics):
     n_pickles, n_repeats, n_iters, n_measures = traces.shape
+    fontsize = {
+        'xlabel': 20,
+        'ylabel': 20,
+        'tick': 18,
+        'legend': 30
+    }
 
     AX_CONFIGS = {
         'precision': (True, 'Test $Pr$', 'pr', 'lower right'),
@@ -218,15 +228,9 @@ def _draw(plot_args, traces, trace_args, metrics):
         n_rows, n_cols = math.ceil(n_plots / 2), 2
 
     figsize = (
-        math.ceil(n_cols * 8.48),
-        math.ceil(n_rows * 4.8 * 0.66),  # Without the 0.66 it'd be 16:9
-    )
-
-    figsize = (
         math.ceil(n_cols * 6.48),
         math.ceil(n_rows * 4.8 * 0.66),  # Without the 0.66 it'd be 16:9
     )
-
     fig, axs = plt.subplots(n_rows, n_cols, figsize=figsize)
 
     ax_idx = 0
@@ -240,9 +244,9 @@ def _draw(plot_args, traces, trace_args, metrics):
 
         for p in range(n_pickles):
             if metric_name == 'n_cleaned' and trace_args[p].p_noise == 0.0:
-                # do not plot for upper bound
+                # do not plot upper bound
                 continue
-            if not to_be_plot(plot_args.question, trace_args[p]):
+            if not to_be_plot(plot_args.question, trace_args[p], plot_args):
                 continue
 
             if metric_name == 'n_cleaned_ce':
@@ -251,7 +255,6 @@ def _draw(plot_args, traces, trace_args, metrics):
                 ax = _plot_line(plot_args, ax, 'n_cleaned_ex', metrics, n_iters, p,
                                 traces, ' ex', '--')
             else:
-
                 ax = _plot_line(plot_args, ax, metric_name, metrics, n_iters, p, traces)
 
         if metric_name == 'negotiator_value':
@@ -271,19 +274,17 @@ def _draw(plot_args, traces, trace_args, metrics):
                 metric_name == 'n_cleaned' and plot_args.summary):
             ax.set_xlabel('Iterations', fontsize=18)
 
-        ax.set_ylabel(name, fontsize=18)
-        if not args.summary and not args.sup:
+        if not args.summary and not plot_args.sup:
             ax.set_title(name)
-        # ax.set_xlabel('Iterations', fontsize=18)
-        ax.tick_params(axis='both', labelsize=18)
+        ax.tick_params(axis='both', labelsize=fontsize['tick'])
         ax.legend(loc=legend_loc, fontsize=15, shadow=False, ncol=2)
 
-    if plot_args.summary or args.sup:
+    if plot_args.summary or plot_args.sup:
         fig_leg = plt.figure(figsize=(7, 1))
         ax_leg = fig_leg.add_subplot(111)
         # add the legend from the previous axes
         leg = ax_leg.legend(*axs[0].get_legend_handles_labels(), ncol=6,
-                            fontsize=30, facecolor='white')
+                            fontsize=fontsize['legend'], facecolor='white')
 
         # hide the axes frame
         ax_leg.axis('off')
@@ -299,7 +300,6 @@ def _draw(plot_args, traces, trace_args, metrics):
     if 'full_fisher' in [a.negotiator for a in trace_args]:
         basename += '__full_fisher'
 
-    fig.tight_layout()
     fig.savefig(os.path.join(plot_args.output_path, f'{basename}.pdf'),
                 bbox_inches='tight',
                 pad_inches=0)
@@ -307,31 +307,17 @@ def _draw(plot_args, traces, trace_args, metrics):
 
 
 def _plot_line(plot_args, ax, metric_name, metrics, n_iters, p, traces, end_label='',
-               style=None):
+               style=None, override_marker=None):
     label, color, marker, linestyle, zorder = _get_style(trace_args[p],
                                                          plot_args.style_by)
     label = 'CINCER (Top Fisher)' if plot_args.question == 'q3' and trace_args[
         p].negotiator == 'top_fisher' else label
 
     linestyle = linestyle if style is None else style
+    marker = marker if override_marker is None else override_marker
     # [pickle, runs, iterations, metrics]
     m = metrics.index(metric_name)
     perf = traces[p, :, :, m]
-
-    # to solve counting cleaned ex error for drop ce
-    # if metric_name == 'n_cleaned':
-    #     m_ce = metrics.index('n_cleaned_ce')
-    #     perf_ce = traces[p, :, :, m_ce]
-    #
-    #     m_ex = metrics.index('n_cleaned_ex')
-    #     perf_ex = traces[p, :, :, m_ex]
-    #     perf_ = perf_ce + perf_ex
-    #     print(perf_.shape)
-    #     if trace_args[p].negotiator == 'ce_removal':
-    #         perf = np.copy(perf_)
-    #     elif not trace_args[p].no_ce:
-    #         assert np.array_equal(perf_, perf)
-
 
     perf = perf.astype(np.float)
     x = np.arange(n_iters)
@@ -486,7 +472,6 @@ def _get_basename(plot_args, args):
     fields_model = [
         (None, plot_args.question),
         ('t', args.threshold if args.inspector != 'never' else 0.0),
-        # (None, args.noise_type),
         (None, args.dataset),
         (None, args.model)
     ]

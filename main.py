@@ -578,7 +578,7 @@ def eval_negotiation(args, if_config):
         for noisy_dataset, noisy, kn, indices in run_data
     ]
 
-    dump('results/' + _get_basename(args) + '.pickle', {'args': args, 'traces': traces})
+    dump(os.path.join('results', _get_basename(args) + '.pickle'), {'args': args, 'traces': traces})
 
 
 def find_threshold(args, if_config):
